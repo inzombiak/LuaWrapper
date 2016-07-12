@@ -1,4 +1,6 @@
-#pragma once
+#ifndef LUA_CALL_DISPATCHER_H
+#define LUA_CALL_DISPATCHER_H
+
 #define MIN_RETURN = 0
 #include <tuple>
 #include <stdlib.h>
@@ -6,26 +8,22 @@
 #include <string>
 #include <vector>
 
+#include <lua/lua.h>
+#include <lua/lauxlib.h>
+#include <lua/lualib.h>
 
-extern "C"
-{
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-}
 
 #include <type_traits>
 
 class LuaCallDispatcher
 {
 public:
-	~LuaCallDispatcher();
 
 	struct LuaUserData
 	{
-		LuaUserData(const void* value = 0) :
-			m_value(value) 
-		{
+		LuaUserData(const void* value = 0)
+        {
+            m_value = value;
 		}
 		const void* m_value;
 	};
@@ -110,15 +108,7 @@ public:
 
 	
 
-	template <typename T>
-	struct _pop<0, T>
-	{
-		typedef T type;
-		static type apply(lua_State* L)
-		{
-			return void;
-		}
-	};
+	
 
 	template <typename... T>
 	typename _pop<sizeof...(T), T...>::type Pop(lua_State* L)
@@ -337,7 +327,7 @@ public:
 	}
 
 private:
-	LuaCallDispatcher();
+    LuaCallDispatcher() {};
 };
 
 template <>
@@ -349,3 +339,55 @@ struct LuaCallDispatcher::_pop<1, void>
 		return void();
 	}
 };
+
+template<>
+inline int LuaCallDispatcher::Read(lua_State* L, int index) const
+{
+    return (int)lua_tointeger(L, index);
+}
+
+template<>
+inline float LuaCallDispatcher::Read(lua_State* L, int index) const
+{
+    return (float)lua_tonumber(L, index);
+}
+
+template<>
+inline double LuaCallDispatcher::Read(lua_State* L, int index) const
+{
+    return lua_tonumber(L, index);
+}
+
+template<>
+inline bool LuaCallDispatcher::Read(lua_State* L, int index) const
+{
+    return lua_toboolean(L, index) != 0;
+}
+
+template<>
+inline const char* LuaCallDispatcher::Read(lua_State* L, int index) const
+{
+    return lua_tostring(L, index);
+}
+
+template<>
+inline std::string LuaCallDispatcher::Read(lua_State* L, int index) const
+{
+    return lua_tostring(L, index);
+}
+
+template<>
+inline lua_CFunction LuaCallDispatcher::Read(lua_State* L, int index) const
+{
+    return lua_tocfunction(L, index);
+}
+
+template<>
+inline LuaCallDispatcher::LuaUserData LuaCallDispatcher::Read(lua_State* L, int index) const
+{
+    return lua_touserdata(L, index);
+}
+
+
+
+#endif

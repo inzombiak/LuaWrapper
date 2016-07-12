@@ -5,16 +5,21 @@
 #include <map>
 #include <memory>
 
-extern "C"
-{
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-}
-
 
 #include "LuaFunction.h"
 #include "LuaObject.h"
+
+struct FuncNameInfo
+{
+    FuncNameInfo(const std::string& newFuncName, const std::string& newGlobaleName = "")
+    {
+        funcName = newFuncName;
+        globalName = newGlobaleName;
+    }
+    
+    std::string funcName;
+    std::string globalName = "";
+};
 
 class LuaEnvironment
 {
@@ -35,7 +40,7 @@ public:
 			new LuaFunction<1, Ret, Args...>{ L, name, function }
 		};
 
-		//m_functionMap[name] = std::move(temp);
+		m_functionMap[name] = std::move(temp);
 	}
 
 	template <typename Class, typename Ret, typename... Args, class = typename std::enable_if<!(std::is_void<Ret>::value), int>::type>
@@ -52,9 +57,9 @@ public:
 				[function](Class *t, Args... args) {
 				return (t->*function)(args...);
 			};
-			ClassLuaFunction<1, Class, Ret, Args...>*classFunc = new ClassLuaFunction<1, Class, Ret, Args...>(L, name, funcName, lambda);
+            ClassLuaFunction<1, Class, Ret, Args...>*classFunc = new ClassLuaFunction<1, Class, Ret, Args...>(L, name, funcName, lambda);
 
-			auto temp = std::unique_ptr<ILuaObject>(new LuaObject<Class>{ L,  metatableName, name, classFunc, funcName });
+			auto temp = std::shared_ptr<LuaObject>(new LuaObject{ L,  metatableName, name, classFunc, funcName });
 			m_objectMap[name] = std::move(temp);
 		}
 		else
@@ -88,7 +93,7 @@ public:
 			};
 			ClassLuaFunction<1, Class, Ret, Args...>*classFunc = new ClassLuaFunction<1, Class, Ret, Args...>(L, name, funcName, lambda);
 
-			auto temp = std::unique_ptr<ILuaObject>(new LuaObject<Class>{ L, metatableName, name, classFunc, funcName });
+			auto temp = std::shared_ptr<LuaObject>(new LuaObject{ L, metatableName, name, classFunc, funcName });
 			m_objectMap[name] = std::move(temp);
 		}
 		else
@@ -107,25 +112,25 @@ public:
 	}
 
 	template <typename Ret, typename... Args, class = typename std::enable_if<!(std::is_void<Ret>::value), int>::type>
-	Ret RunFunction(lua_State* L, const std::string& funcName, const std::string& globalName = "", const Args&... args)
+	Ret RunFunction(lua_State* L, const FuncNameInfo& funcNameInfo, const Args&... args)
 	{
 		lua_getfield(L, LUA_REGISTRYINDEX, m_environmentName.c_str());
 
-		if (globalName.empty())
-			return LuaCallDispatcher::GetInstance().CallGlobal<Ret, Args...>(L, funcName, args...);
+		if (funcNameInfo.globalName.empty())
+			return LuaCallDispatcher::GetInstance().CallGlobal<Ret, Args...>(L, funcNameInfo.funcName, args...);
 		else
-			return LuaCallDispatcher::GetInstance().CallMemberFunction<Ret, Args...>(L, globalName, funcName, args...);
+			return LuaCallDispatcher::GetInstance().CallMemberFunction<Ret, Args...>(L, funcNameInfo.globalName, funcNameInfo.funcName, args...);
 	}
 
 	template <typename Ret, typename... Args, class = typename std::enable_if<(std::is_void<Ret>::value), int>::type>
-	void RunFunction(lua_State* L,std::string funcName, std::string globalName = "", Args... args)
+	void RunFunction(lua_State* L, const FuncNameInfo& funcNameInfo, Args... args)
 	{
 		lua_getfield(L, LUA_REGISTRYINDEX, m_environmentName.c_str());
 
-		if (globalName.empty())
-			LuaCallDispatcher::GetInstance().CallGlobal<void>(L, funcName, args...);
-		else
-			LuaCallDispatcher::GetInstance().CallMemberFunction<void>(L, globalName, funcName, args...);
+        if (funcNameInfo.globalName.empty())
+            return LuaCallDispatcher::GetInstance().CallGlobal<Ret, Args...>(L, funcNameInfo.funcName, args...);
+        else
+            return LuaCallDispatcher::GetInstance().CallMemberFunction<Ret, Args...>(L, funcNameInfo.globalName, funcNameInfo.funcName, args...);
 	}
 
 	template <typename Ret>

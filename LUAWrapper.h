@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LUA_WRAPPER_H
+#define LUA_WRAPPER_H
 
 #include <string>
 #include <vector>
@@ -8,20 +9,15 @@
 #include <memory>
 #include <stdio.h>
 
-extern "C"
-{
-	#include <lua.h>
-	#include <lauxlib.h>
-	#include <lualib.h>
-}
-
 #include "LuaEnvironment.h"
 
 class LuaWrapper
 {
 public:
 	~LuaWrapper();
-
+    
+   
+    
 	static LuaWrapper& GetInstance() 
 	{
 		static LuaWrapper instance;
@@ -66,23 +62,23 @@ public:
 	}
 
 	template <typename Ret, typename... Args, class = typename std::enable_if<!(std::is_void<Ret>::value), int>::type>
-	Ret RunFunction(const std::string& envName, const std::string& funcName, const std::string& globalName = "", Args... args)
+	Ret RunFunction(const std::string& envName,const FuncNameInfo& nameInfo, Args... args)
 	{
 		if (!FindLuaEnvironment(envName))
 			return Ret();
 
-		Ret result = m_environmentMap[envName]->RunFunction<Ret>(m_luaState, funcName, globalName, args...);
+		Ret result = m_environmentMap[envName]->RunFunction<Ret>(m_luaState, nameInfo, args...);
 		CleanStack();
 		return result;
 
 	}
 	template <typename Ret, typename... Args, class = typename std::enable_if<(std::is_void<Ret>::value), int>::type>
-	void RunFunction(const std::string& envName,const std::string& funcName, const std::string& globalName = "", Args... args)
+	void RunFunction(const std::string& envName,const FuncNameInfo& nameInfo, Args... args)
 	{
 		if (!GetInstance().FindLuaEnvironment(envName))
 			return;
 
-		m_environmentMap[envName]->RunFunction<void>(m_luaState, funcName, globalName, args...);
+		m_environmentMap[envName]->RunFunction<void>(m_luaState, nameInfo, args...);
 		CleanStack();
 	}
 
@@ -157,6 +153,36 @@ public:
 		m_luaState = luaL_newstate();
 		luaL_openlibs(m_luaState);
 	}
+    
+    static void StackDump()
+    {
+        int i;
+        int top = lua_gettop(m_luaState);
+        for (i = 1; i <= top; i++) {  /* repeat for each level */
+            int t = lua_type(m_luaState, i);
+            switch (t) {
+                    
+                case LUA_TSTRING:  /* strings */
+                    printf("`%s'", lua_tostring(m_luaState, i));
+                    break;
+                    
+                case LUA_TBOOLEAN:  /* booleans */
+                    printf(lua_toboolean(m_luaState, i) ? "true" : "false");
+                    break;
+                    
+                case LUA_TNUMBER:  /* numbers */
+                    printf("%g", lua_tonumber(m_luaState, i));
+                    break;
+                    
+                default:  /* other values */
+                    printf("%s", lua_typename(m_luaState, t));
+                    break;
+                    
+            }
+            printf("  ");  /* put a separator */
+        }
+        printf("\n");  /* end the listing */
+    }
 
 private:
 	void CreateLuaEnvironment(const std::string& name);
@@ -171,3 +197,5 @@ private:
 
 	std::map<std::string, std::unique_ptr<LuaEnvironment>> m_environmentMap;
 };
+
+#endif

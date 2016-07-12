@@ -3,13 +3,6 @@
 
 #include "LuaCallDispatcher.h"
 
-extern "C"
-{
-	#include <lua.h>
-	#include <lauxlib.h>
-	#include <lualib.h>
-}
-
 #include <string>
 #include <functional>
 #include <tuple>
@@ -25,11 +18,11 @@ public:
 
 namespace detail
 {
-	//inline int LuaDispatcher(lua_State* L)
-	//{
-	//	ILuaFunction* function = (ILuaFunction *)lua_touserdata(L, lua_upvalueindex(1));
-	//	return function->Apply(L);
-	//}
+	inline int LuaDispatcher(lua_State* L)
+	{
+		ILuaFunction* function = (ILuaFunction *)lua_touserdata(L, lua_upvalueindex(1));
+		return function->Apply(L);
+	}
 
 	template<typename T>
 	T GetAndCheckType(lua_State* L, int i);
@@ -80,14 +73,18 @@ class LuaFunction : public ILuaFunction
 private:
 	using FunctionType = std::function<Ret(Args...)>;
 	FunctionType m_function;
-	std::string m_name;
+	std::string m_name = "";
 	lua_State* m_luaState; // Used for destruction
 
 public:
-	LuaFunction(lua_State* L, const std::string& name, Ret(*function)(Args...)) : LuaFunction(L, name, FunctionType{ function }) {};
+    LuaFunction(lua_State* L, const std::string& name, Ret(*function)(Args...))
+    {
+        fLuaFunction(L, name, FunctionType{ function });
+    };
 
-	LuaFunction(lua_State* L, const std::string& name, FunctionType(function)) : m_function(function), m_name(name)
+	LuaFunction(lua_State* L, const std::string& name, FunctionType(function)) : m_function(function)
 	{
+        m_name = name;
 		m_luaState = L;
 		// Add pointer to this object to the closure
 		lua_pushlightuserdata(m_luaState, (void*) static_cast<ILuaFunction*>(this));
@@ -103,9 +100,9 @@ public:
 
 	LuaFunction(LuaFunction&& other)
 		: m_function(other.m_function),
-		m_name(other.m_name),
 		m_luaState(other.m_luaState)
 	{
+        m_name = other.m_name;
 		*other.m_luaState = nullptr;
 	}
 	~LuaFunction()
