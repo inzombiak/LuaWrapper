@@ -7,5 +7,5 @@ I wrote this following Jeremy Ong's blog posts on his Lua wrapper, [Selene](http
 
 On issue the library has is that I fully clean the stack after each call to the wrapper to avoid malformed stacks. While this works, and has no bugs, I think each call should be written in a way that it can clean up after itself. I'll try to address this at some point.
 
-# TODO
+## TODO
 * Get rid of CleanStack()
