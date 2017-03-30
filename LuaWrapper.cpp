@@ -20,7 +20,6 @@ LuaWrapper::~LuaWrapper()
 
 void LuaWrapper::LoadScript(const std::string& environmentName, const std::string& filename)
 {
-
 	cout << "LOADING: " << filename << endl;
 	if (!m_luaState)
 		return;
@@ -34,9 +33,12 @@ void LuaWrapper::LoadScript(const std::string& environmentName, const std::strin
 	lua_newtable(m_luaState);
 	lua_newtable(m_luaState);
 	lua_getglobal(m_luaState, "_G");
+
 	lua_setfield(m_luaState, -2, "__index");
 	lua_setmetatable(m_luaState, -2);
+
 	lua_setfield(m_luaState, LUA_REGISTRYINDEX, environmentName.c_str());
+
 	lua_getfield(m_luaState, LUA_REGISTRYINDEX, environmentName.c_str());
 	lua_setupvalue(m_luaState, 1, 1);
 

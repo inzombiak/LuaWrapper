@@ -1,5 +1,5 @@
-#ifndef Lua_FUNCTION_H
-#define Lua_FUNCTION_H
+#ifndef LUA_FUNCTION_H
+#define LUA_FUNCTION_H
 
 #include "LuaCallDispatcher.h"
 
@@ -151,10 +151,8 @@ public:
 		m_luaState = L;
 		// Add pointer to this object to the closure
 		lua_pushlightuserdata(m_luaState, (void*) static_cast<ILuaFunction*>(this));
-
 		// Push our dispatcher with the above upvalue
 		lua_pushcclosure(m_luaState, &detail::LuaDispatcher, 1);
-
 		// Bind it to the specified name
 		lua_setfield(m_luaState, -2, funcName.c_str());
 
@@ -216,10 +214,10 @@ public:
 		m_luaState = L;
 		// Add pointer to this object to the closure
 		lua_pushlightuserdata(m_luaState, (void*) static_cast<ILuaFunction*>(this));
-
+		
 		// Push our dispatcher with the above upvalue
 		lua_pushcclosure(m_luaState, &detail::LuaDispatcher, 1);
-
+	
 		// Bind it to the specified name
 		lua_setfield(m_luaState, -2, funcName.c_str());
 

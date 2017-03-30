@@ -8,10 +8,7 @@
 #include <string>
 #include <vector>
 
-#include <lua/lua.h>
-#include <lua/lauxlib.h>
-#include <lua/lualib.h>
-
+#include<lua.hpp>
 
 #include <type_traits>
 
@@ -32,6 +29,12 @@ public:
 	{
 		static LuaCallDispatcher dispatch;
 		return dispatch;
+	}
+
+	void CleanStack(lua_State* L)
+	{
+		int stackSize = lua_gettop(L);
+		lua_pop(L, stackSize);
 	}
 
 	inline void Push() {};
@@ -193,7 +196,7 @@ public:
 		const int num_args = sizeof...(Args) + 1;
 		lua_pushvalue(L, -2);
 		GetInstance().Push(L, args...);
-		stackDump(L);
+		//stackDump(L);
 		lua_call(L, num_args, 0);
 	}
 
@@ -211,13 +214,13 @@ public:
 			lua_pushvalue(L, -1);
 			lua_setfield(L, -2, "__index");
 		}
+
 		if (userData != 0)
 		{
 			lua_pushlightuserdata(L, userData);
 			lua_setfield(L, -2, "__object");
 		}
-		
-		lua_setfield(L, -1,objName.c_str());
+		lua_setfield(L, -2, objName.c_str());
 	}
 
 	template <typename Ret>

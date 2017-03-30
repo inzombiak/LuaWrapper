@@ -1,5 +1,5 @@
-#ifndef Lua_ENVIRONMENT_H
-#define Lua_ENVIRONMENT_H
+#ifndef LUA_ENVIRONMENT_H
+#define LUA_ENVIRONMENT_H
 
 #include <string>
 #include <map>
@@ -54,8 +54,11 @@ public:
 			LuaCallDispatcher::GetInstance().CreateGlobalObject(L, name, metatableName, pClass);
 			lua_getglobal(L, name.c_str());
 			std::function<Ret(Class*, Args...)> lambda =
-				[function](Class *t, Args... args) {
-				return (t->*function)(args...);
+				[L, function](Class *t, Args... args) {
+				//Need to clean args off the stack
+				LuaCallDispatcher::GetInstance().CleanStack(L);
+				Ret r = (t->*function)(args...);
+				return r;
 			};
             ClassLuaFunction<1, Class, Ret, Args...>*classFunc = new ClassLuaFunction<1, Class, Ret, Args...>(L, name, funcName, lambda);
 
@@ -67,8 +70,11 @@ public:
 			lua_getglobal(L, name.c_str());
 
 			std::function<Ret(Class*, Args...)> lambda =
-				[function](Class *t, Args... args) {
-				return (t->*function)(args...);
+				[L, function](Class *t, Args... args) {
+				//Need to clean args off the stack
+				LuaCallDispatcher::GetInstance().CleanStack(L);
+				Ret r = (t->*function)(args...);
+				return r;
 			};
 			ClassLuaFunction<1, Class, Ret, Args...>*classFunc = new ClassLuaFunction<1, Class, Ret, Args...>(L, name, funcName, lambda);
 
@@ -86,10 +92,11 @@ public:
 		if (it == m_objectMap.end())
 		{
 			LuaCallDispatcher::GetInstance().CreateGlobalObject(L, name, metatableName, pClass);
-			lua_getglobal(L, name.c_str());
+			lua_getfield(L, -1, name.c_str());
 			std::function<Ret(Class*, Args...)> lambda =
-				[function](Class *t, Args... args) {
-				return (t->*function)(args...);
+				[L, function](Class *t, Args... args) {
+				LuaCallDispatcher::GetInstance().CleanStack(L);
+				(t->*function)(args...);
 			};
 			ClassLuaFunction<1, Class, Ret, Args...>*classFunc = new ClassLuaFunction<1, Class, Ret, Args...>(L, name, funcName, lambda);
 
@@ -101,8 +108,10 @@ public:
 			lua_getglobal(L, name.c_str());
 
 			std::function<Ret(Class*, Args...)> lambda =
-				[function](Class *t, Args... args) {
-				return (t->*function)(args...);
+				[L, function](Class *t, Args... args) {
+				//Need to clean args off the stack
+				LuaCallDispatcher::GetInstance().CleanStack(L);
+				(t->*function)(args...);
 			};
 			ClassLuaFunction<1, Class, Ret, Args...>*classFunc = new ClassLuaFunction<1, Class, Ret, Args...>(L, name, funcName, lambda);
 

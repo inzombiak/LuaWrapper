@@ -25,8 +25,7 @@ public:
 	}
 	void CleanStack()
 	{
-		int stackSize = lua_gettop(m_luaState);
-		lua_pop(m_luaState, stackSize);
+		LuaCallDispatcher::GetInstance().CleanStack(m_luaState);
 	}
 	void LoadScript(const std::string& environmentName, const std::string& filename);
 	std::vector<int> GetIntVector(const std::string& name);
